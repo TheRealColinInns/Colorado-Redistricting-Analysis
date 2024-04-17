@@ -31,11 +31,11 @@ def create_updaters():
 
     # 'TOTPOP20', 'VAP20', 'HISP', 'NH_WHITE', 'NH_BLACK', 'NH_AMIN', 'NH_ASIAN', 'NH_NHPI', 'NH_OTHER', 'NH_2MORE'
     chain_updaters = {"population": Tally("TOTPOP20", alias="population"),
-                      "white population": Tally("NH_WHITE", alias="population"),
-                      "black population": Tally("NH_BLACK", alias="population"),
-                      "hispanic population": Tally("HISP", alias="population"),
-                      "native population": Tally("NH_AMIN", alias="population"),
-                      "asian population": Tally("NH_ASIAN", alias="population"),
+                      "white population": Tally("NH_WHITE", alias="white population"),
+                      "black population": Tally("NH_BLACK", alias="black population"),
+                      "hispanic population": Tally("HISP", alias="hispanic population"),
+                      "native population": Tally("NH_AMIN", alias="native population"),
+                      "asian population": Tally("NH_ASIAN", alias="asian population"),
                       "cut edges": cut_edges,
                       }
 
@@ -111,6 +111,7 @@ def walk(chain, num_dists):
     asian_ensemble = []
 
     for part in chain.with_progress_bar():
+        
         # Add cut edges
         cut_edge_ensemble.append(len(part["cut edges"]))
 
