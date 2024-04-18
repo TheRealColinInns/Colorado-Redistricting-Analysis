@@ -2,6 +2,7 @@ import pandas as pd
 import geopandas as gpd
 import maup
 import time
+import numpy
 
 import matplotlib.pyplot as plt
 from gerrychain import Graph, Partition, proposals, updaters, constraints, accept, MarkovChain, Election
@@ -94,8 +95,31 @@ def update_population_ensemble(part, part_key, num_dists, ensemble):
 
     ensemble.append(num_majority)
 
+def update_mm_ensemble(part, election, ensemble):
+    d_votes = part[election].percents("Democratic") # extract percentage of votes for democrats
+    ensemble.append(numpy.median(d_votes) - numpy.mean(d_votes)) # use numpy to calculate median and mean for me
+
+def update_eg_ensemble(part, election, ensemble):
+    # get the vote counts for each party
+    party1, party2 = [part[election].counts(party) for party in part[election].election.parties]
+    party1_waste = 0
+    party2_waste = 0
+    # calculate the wasted votes
+    for i in range(len(party1)):
+        total_votes = party1[i] + party2[i]
+        if party1[i] > party2[i]:
+            party1_waste += party1[i] - total_votes / 2
+            party2_waste += party2[i]
+        else:
+            party2_waste += party2[i] - total_votes / 2
+            party1_waste += party1[i]
+    total_votes = part[election].total_votes() # extract total votes
+    ensemble.append((party2_waste - party1_waste) / total_votes) # calculate eg
 
 def walk(chain, num_dists):
+    mm_ensemble = []
+    eg_ensemble = []
+    
     cut_edge_ensemble = []
 
     pres_16_df = []
@@ -111,6 +135,10 @@ def walk(chain, num_dists):
     asian_ensemble = []
 
     for part in chain.with_progress_bar():
+
+        # Add metrics
+        update_mm_ensemble(part, "PRES20", mm_ensemble)
+        update_eg_ensemble(part, "PRES20", eg_ensemble)
         
         # Add cut edges
         cut_edge_ensemble.append(len(part["cut edges"]))
@@ -132,7 +160,7 @@ def walk(chain, num_dists):
     ensembles = [cut_edge_ensemble,
                  pd.DataFrame(pres_16_df), pd.DataFrame(pres_20_df),
                  dem_pres_16_ensemble, dem_pres_20_ensemble,
-                 white_ensemble, black_ensemble, hispanic_ensemble, native_ensemble, asian_ensemble]
+                 white_ensemble, black_ensemble, hispanic_ensemble, native_ensemble, asian_ensemble, mm_ensemble, eg_ensemble]
 
     return ensembles
 
@@ -165,7 +193,6 @@ def create_hist(ensemble, title):
     plt.hist(ensemble, align='left')
     plt.savefig(f'{title}.png')
 
-
 def main():
     start_time = time.time()
 
@@ -180,7 +207,10 @@ def main():
     chain = create_chain(initial_partition, total_steps_in_run=5000)
 
     cut_edge_ensemble, pres_16_df, pres_20_df, dem_pres_16_ensemble, dem_pres_20_ensemble, white_ensemble, \
-    black_ensemble, hispanic_ensemble, native_ensemble, asian_ensemble = walk(chain, num_dists=8)
+    black_ensemble, hispanic_ensemble, native_ensemble, asian_ensemble, mm_ensemble, eg_ensemble = walk(chain, num_dists=8)
+
+    create_hist(mm_ensemble, 'Democrat Mean-Median (2020 Presidential Election)')
+    create_hist(eg_ensemble, 'Efficiency Gap (2020 Presidential Election)')
 
     create_hist(cut_edge_ensemble, 'Cut Edges')
 
