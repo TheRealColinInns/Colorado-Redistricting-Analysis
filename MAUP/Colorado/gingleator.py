@@ -44,6 +44,7 @@ class Gingleator:
     def __init__(self, initial_partition, threshold=0.4, 
                  score_funct=None, minority_perc_col=None,
                  pop_col="TOTPOP", epsilon=0.05):
+        print(minority_perc_col)
         self.part = initial_partition
         self.threshold = threshold
         self.score = self.num_opportunity_dists if score_funct == None else score_funct
@@ -165,7 +166,7 @@ class Gingleator:
                                     of each burst
             maximize:   flag - indicates where to prefer plans with higher or lower scores.
         """
-        max_part = (self.part, self.score(self.part, self.minority_prec,
+        max_part = (self.part, self.score(self.part, self.minority_perc,
                     self.threshold))
         observed_num_ops = np.zeros(num_iters)
         
@@ -245,7 +246,7 @@ class Gingleator:
         num_opportunity_dists: given a partition, name of the minority percent updater, and a
                                threshold, returns the number of opportunity districts.
         """
-        dist_precs = part[minority_prec].values()
+        dist_precs = part[minority_perc].values()
         return sum(list(map(lambda v: v >= threshold, dist_precs)))
 
 
