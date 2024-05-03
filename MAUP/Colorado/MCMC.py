@@ -86,18 +86,23 @@ def update_election_ensemble(part, part_key, percent, ensemble):
     ensemble.append(win)
 
 
-def update_population_ensemble(part, part_key, num_dists, ensemble):
+def update_population_ensemble(part, part_key, num_dists, ensemble, store_percentage=False):
     num_majority = 0
     for district in range(1, num_dists + 1):
         percent = part[part_key][district] / part["population"][district]
-        if percent >= 0.5:
+        if not store_percentage and percent >= 0.5:
             num_majority += 1
+        elif store_percentage:
+            ensemble.append(percent)
 
-    ensemble.append(num_majority)
+    if not store_percentage:
+        ensemble.append(num_majority)
+
 
 def update_mm_ensemble(part, election, ensemble):
-    d_votes = part[election].percents("Democratic") # extract percentage of votes for democrats
-    ensemble.append(numpy.median(d_votes) - numpy.mean(d_votes)) # use numpy to calculate median and mean for me
+    d_votes = part[election].percents("Democratic")  # extract percentage of votes for democrats
+    ensemble.append(numpy.median(d_votes) - numpy.mean(d_votes))  # use numpy to calculate median and mean for me
+
 
 def update_eg_ensemble(part, election, ensemble):
     # get the vote counts for each party
@@ -113,8 +118,9 @@ def update_eg_ensemble(part, election, ensemble):
         else:
             party2_waste += party2[i] - total_votes / 2
             party1_waste += party1[i]
-    total_votes = part[election].total_votes() # extract total votes
-    ensemble.append((party2_waste - party1_waste) / total_votes) # calculate eg
+    total_votes = part[election].total_votes()  # extract total votes
+    ensemble.append((party2_waste - party1_waste) / total_votes)  # calculate eg
+
 
 def walk(chain, num_dists):
     mm_ensemble = []
@@ -124,6 +130,8 @@ def walk(chain, num_dists):
 
     pres_16_df = []
     pres_20_df = []
+
+    hispanic_df = []
 
     dem_pres_16_ensemble = []
     dem_pres_20_ensemble = []
@@ -157,8 +165,12 @@ def walk(chain, num_dists):
         pres_16_df.append(sorted(part["PRES16"].percents("Democratic")))
         pres_20_df.append(sorted(part["PRES20"].percents("Democratic")))
 
+        hisp_ensemble_temp = []
+        update_population_ensemble(part, "hispanic population", num_dists, hisp_ensemble_temp, store_percentage=True)
+        hispanic_df.append(sorted(hisp_ensemble_temp))
+
     ensembles = [cut_edge_ensemble,
-                 pd.DataFrame(pres_16_df), pd.DataFrame(pres_20_df),
+                 pd.DataFrame(pres_16_df), pd.DataFrame(pres_20_df), pd.DataFrame(hispanic_df),
                  dem_pres_16_ensemble, dem_pres_20_ensemble,
                  white_ensemble, black_ensemble, hispanic_ensemble, native_ensemble, asian_ensemble, mm_ensemble, eg_ensemble]
 
@@ -193,6 +205,7 @@ def create_hist(ensemble, title):
     plt.hist(ensemble, align='left')
     plt.savefig(f'{title}.png')
 
+
 def main():
     start_time = time.time()
 
@@ -204,9 +217,9 @@ def main():
         updaters=create_updaters()
     )
 
-    chain = create_chain(initial_partition, total_steps_in_run=5000)
+    chain = create_chain(initial_partition, total_steps_in_run=1)
 
-    cut_edge_ensemble, pres_16_df, pres_20_df, dem_pres_16_ensemble, dem_pres_20_ensemble, white_ensemble, \
+    cut_edge_ensemble, pres_16_df, pres_20_df, hispanic_df, dem_pres_16_ensemble, dem_pres_20_ensemble, white_ensemble, \
     black_ensemble, hispanic_ensemble, native_ensemble, asian_ensemble, mm_ensemble, eg_ensemble = walk(chain, num_dists=8)
 
     create_hist(mm_ensemble, 'Democrat Mean-Median (2020 Presidential Election)')
@@ -223,6 +236,7 @@ def main():
     create_hist(native_ensemble, 'Native-Majority Districts')
     create_hist(asian_ensemble, 'Asian-Majority Districts')
 
+    create_signature_plot(hispanic_df, "Hispanic Percentage")
     create_signature_plot(pres_16_df, "2016 Presidential")
     create_signature_plot(pres_20_df, "2020 Presidential")
 
