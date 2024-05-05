@@ -177,32 +177,45 @@ def walk(chain, num_dists):
     return ensembles
 
 
-def create_signature_plot(data, election_name):
+def create_signature_plot(data, election_name, group_name):
     fig, ax = plt.subplots(figsize=(8, 6))
 
     # Draw 50% line
     ax.axhline(0.5, color="#cccccc")
 
     # Draw boxplot
-    data.boxplot(ax=ax, positions=range(len(data.columns)))
+    data.boxplot(ax=ax, positions=range(len(data.columns)), showfliers=False)
 
     # Draw initial plan's Democratic vote %s (.iloc[0] gives the first row, which corresponds to the initial plan)
-    plt.plot(data.iloc[0], "ro")
+    plt.plot(data.iloc[0], "ro", label='Initial Plan')
+    plt.legend(loc="upper left")
 
     # Annotate
     ax.set_title("Comparing the 2020 Congressional plan to an ensemble")
-    ax.set_ylabel(f"Democratic vote % ({election_name})")
+    ax.set_ylabel(f"{group_name} vote % {election_name or ''}")
     ax.set_xlabel("Sorted districts")
     ax.set_ylim(0, 1)
+    ax.set_xticks(range(len(data.columns)), range(1, len(data.columns) + 1))
     ax.set_yticks([0, 0.25, 0.5, 0.75, 1])
 
-    plt.savefig(f'Signature of Gerrymandering - {election_name}.png')
+    plt.savefig(f'Signature of Gerrymandering - {election_name or group_name}.png')
+
+
+def create_stat_hist(ensemble, title):
+    plt.figure()
+    plt.title(title)
+    plt.hist(ensemble, align='left')
+    plt.axvline(ensemble[0], color='r', linestyle='dashed', linewidth=1, label='Initial Plan')
+    plt.legend(loc="upper left")
+    plt.savefig(f'{title}.png')
 
 
 def create_hist(ensemble, title):
     plt.figure()
     plt.title(title)
-    plt.hist(ensemble, align='left')
+    plt.hist(ensemble, align='left', bins=range(10), rwidth=0.9)
+    plt.axvline(ensemble[0], color='r', linestyle='dashed', linewidth=1, label='Initial Plan')
+    plt.legend(loc="upper left")
     plt.savefig(f'{title}.png')
 
 
@@ -217,15 +230,14 @@ def main():
         updaters=create_updaters()
     )
 
-    chain = create_chain(initial_partition, total_steps_in_run=1)
+    chain = create_chain(initial_partition, total_steps_in_run=20_000)
 
     cut_edge_ensemble, pres_16_df, pres_20_df, hispanic_df, dem_pres_16_ensemble, dem_pres_20_ensemble, white_ensemble, \
     black_ensemble, hispanic_ensemble, native_ensemble, asian_ensemble, mm_ensemble, eg_ensemble = walk(chain, num_dists=8)
 
-    create_hist(mm_ensemble, 'Democrat Mean-Median (2020 Presidential Election)')
-    create_hist(eg_ensemble, 'Efficiency Gap (2020 Presidential Election)')
-
-    create_hist(cut_edge_ensemble, 'Cut Edges')
+    create_stat_hist(mm_ensemble, 'Democrat Mean-Median (2020 Presidential Election)')
+    create_stat_hist(eg_ensemble, 'Efficiency Gap (2020 Presidential Election)')
+    create_stat_hist(cut_edge_ensemble, 'Cut Edges')
 
     create_hist(dem_pres_16_ensemble, 'Democratic-Won Districts (2016 Presidential Election)')
     create_hist(dem_pres_20_ensemble, 'Democratic-Won Districts (2020 Presidential Election)')
@@ -236,9 +248,9 @@ def main():
     create_hist(native_ensemble, 'Native-Majority Districts')
     create_hist(asian_ensemble, 'Asian-Majority Districts')
 
-    create_signature_plot(hispanic_df, "Hispanic Percentage")
-    create_signature_plot(pres_16_df, "2016 Presidential")
-    create_signature_plot(pres_20_df, "2020 Presidential")
+    create_signature_plot(hispanic_df, None, "Hispanic")
+    create_signature_plot(pres_16_df, "2016 Presidential", 'Democratic')
+    create_signature_plot(pres_20_df, "2020 Presidential", 'Democratic')
 
     end_time = time.time()
     print(f"The time of execution of above program is: {(end_time - start_time) / 60} mins")
