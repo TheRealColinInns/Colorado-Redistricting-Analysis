@@ -198,7 +198,7 @@ def create_signature_plot(data, election_name, group_name):
     ax.set_xticks(range(len(data.columns)), range(1, len(data.columns) + 1))
     ax.set_yticks([0, 0.25, 0.5, 0.75, 1])
 
-    plt.savefig(f'Signature of Gerrymandering - {election_name or group_name}.png')
+    plt.savefig(f'./images/Signature of Gerrymandering - {election_name or group_name}.png')
 
 
 def create_stat_hist(ensemble, title):
@@ -207,7 +207,7 @@ def create_stat_hist(ensemble, title):
     plt.hist(ensemble, align='left')
     plt.axvline(ensemble[0], color='r', linestyle='dashed', linewidth=1, label='Initial Plan')
     plt.legend(loc="upper left")
-    plt.savefig(f'{title}.png')
+    plt.savefig(f'./images/{title}.png')
 
 
 def create_hist(ensemble, title):
@@ -216,13 +216,13 @@ def create_hist(ensemble, title):
     plt.hist(ensemble, align='left', bins=range(10), rwidth=0.9)
     plt.axvline(ensemble[0], color='r', linestyle='dashed', linewidth=1, label='Initial Plan')
     plt.legend(loc="upper left")
-    plt.savefig(f'{title}.png')
+    plt.savefig(f'./images/{title}.png')
 
 
 def main():
     start_time = time.time()
 
-    co_graph = Graph.from_file('./data/cleaned/final data/CO.shp')
+    co_graph = Graph.from_file('data/cleaned/final data/CO.shp')
 
     initial_partition = Partition(
         co_graph,
